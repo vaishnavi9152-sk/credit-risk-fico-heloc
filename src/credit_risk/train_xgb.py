@@ -7,36 +7,44 @@ from sklearn.metrics import roc_auc_score, classification_report, confusion_matr
 
 from xgboost import XGBClassifier
 
-from src.credit_risk.features import fit_imputer, transform_with_imputer
 
-
-def load_data() -> pd.DataFrame:
+def load_df() -> pd.DataFrame:
     ds = fetch_openml(data_id=45554, as_frame=True)
     return ds.frame
 
 
-def main():
-    df = load_data()
-
+def make_xy(df: pd.DataFrame):
+    # target: 1 = Bad (high risk), 0 = Good
     y = (df["RiskPerformance"] == "Bad").astype(int)
 
-    df_train, df_test, y_train, y_test = train_test_split(
-        df, y, test_size=0.2, stratify=y, random_state=42
+    X = df.drop(columns=["RiskPerformance"])
+   
+    X = X.apply(pd.to_numeric, errors="coerce")
+
+    return X, y
+
+
+def main():
+    df = load_df()
+    X, y = make_xy(df)
+
+    
+    X = X.fillna(-1)
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y,
+        test_size=0.2,
+        stratify=y,
+        random_state=42
     )
 
-
-    imputer = fit_imputer(df_train)
-
-    X_train = transform_with_imputer(df_train, imputer)
-    X_test = transform_with_imputer(df_test, imputer)
-
+    
     model = XGBClassifier(
-        n_estimators=800,
-        max_depth=3,
-        learning_rate=0.03,
+        n_estimators=500,
+        max_depth=4,
+        learning_rate=0.05,
         subsample=0.9,
         colsample_bytree=0.9,
-        min_child_weight=2,
         reg_lambda=1.0,
         random_state=42,
         n_jobs=-1,
@@ -49,18 +57,18 @@ def main():
     preds = (probs >= 0.5).astype(int)
 
     auc = roc_auc_score(y_test, probs)
-    print("\n=== XGBoost (train-fit imputer + consistent features) ===")
+    print("\n=== XGBoost Results ===")
     print("ROC AUC:", auc)
     print("\nConfusion Matrix:\n", confusion_matrix(y_test, preds))
     print("\nClassification Report:\n", classification_report(y_test, preds))
 
+
     artifacts = {
         "model": model,
-        "imputer": imputer,
-        "feature_names": list(X_train.columns),
+        "feature_names": list(X.columns)
     }
-    joblib.dump(artifacts, "artifacts.joblib")
-    print("\nSaved: artifacts.joblib")
+    joblib.dump(artifacts, "xgb_artifacts.joblib")
+    print("\nSaved: xgb_artifacts.joblib")
 
 
 if __name__ == "__main__":
