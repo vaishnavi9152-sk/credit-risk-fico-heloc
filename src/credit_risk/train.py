@@ -4,7 +4,12 @@ import numpy as np
 
 from sklearn.datasets import fetch_openml
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import roc_auc_score, classification_report, confusion_matrix
+from sklearn.metrics import (
+    roc_auc_score,
+    classification_report,
+    confusion_matrix,
+    brier_score_loss,
+)
 
 from xgboost import XGBClassifier
 
@@ -19,24 +24,10 @@ def load_data() -> pd.DataFrame:
 def pick_thresholds_cost_sensitive(
     probs: np.ndarray,
     y_true: np.ndarray,
-    fn_cost: float = 3.0,
+    fn_cost: float = 2.0,
     fp_cost: float = 1.0,
 ) -> dict:
-    """
-    Find (t_low, t_high) thresholds that minimize cost.
-
-    Tier rule:
-      - prob < t_low           -> LOW  (approve)
-      - t_low <= prob < t_high -> MEDIUM (manual review)
-      - prob >= t_high         -> HIGH (reject)
-
-    For cost computation we simplify and treat:
-      - REJECT (prob >= t_high) as predicting BAD (1)
-      - else as predicting GOOD (0)
-
-    Cost = fn_cost * FN + fp_cost * FP
-    """
-    grid = np.linspace(0.05, 0.95, 91)  
+    grid = np.linspace(0.05, 0.95, 91)
     best = None
 
     for t_low in grid:
@@ -63,31 +54,29 @@ def pick_thresholds_cost_sensitive(
 
 
 def main():
-    
-    # FN = approve a bad borrower (very expensive)
-    # FP = reject a good borrower (less expensive)
     FN_COST = 2.0
     FP_COST = 1.0
-    
 
     df = load_data()
-
     y = (df["RiskPerformance"] == "Bad").astype(int)
 
-    # 60/20/20 split: train/val/test
+    # 80/20: trainval/test
     df_trainval, df_test, y_trainval, y_test = train_test_split(
         df, y, test_size=0.2, stratify=y, random_state=42
     )
-    df_train, df_val, y_train, y_val = train_test_split(
+
+    # Split trainval into TRAIN (60%) and THRESH (20%)
+    df_train, df_thresh, y_train, y_thresh = train_test_split(
         df_trainval, y_trainval, test_size=0.25, stratify=y_trainval, random_state=42
     )
 
+    # preprocessing fit only on TRAIN
     imputer = fit_imputer(df_train)
-
     X_train = transform_with_imputer(df_train, imputer)
-    X_val = transform_with_imputer(df_val, imputer)
+    X_thresh = transform_with_imputer(df_thresh, imputer)
     X_test = transform_with_imputer(df_test, imputer)
 
+    # model
     model = XGBClassifier(
         n_estimators=800,
         max_depth=3,
@@ -102,25 +91,29 @@ def main():
     )
     model.fit(X_train, y_train)
 
+    # evaluate probability quality (uncalibrated)
     probs_test = model.predict_proba(X_test)[:, 1]
     auc = roc_auc_score(y_test, probs_test)
+    brier = brier_score_loss(y_test, probs_test)
 
-    print("\n=== XGBoost (train-fit preprocessing, proper split) ===")
+    print("\n=== XGBoost (uncalibrated) ===")
     print("ROC AUC (test):", auc)
+    print("Brier (test):", brier)
 
-    probs_val = model.predict_proba(X_val)[:, 1]
+    # choose thresholds on THRESH
+    probs_thresh = model.predict_proba(X_thresh)[:, 1]
     best = pick_thresholds_cost_sensitive(
-        probs=probs_val,
-        y_true=y_val.to_numpy(),
+        probs=probs_thresh,
+        y_true=y_thresh.to_numpy(),
         fn_cost=FN_COST,
         fp_cost=FP_COST,
     )
 
-    print(f"\n=== Thresholds chosen on VALIDATION (FN cost={FN_COST}, FP cost={FP_COST}) ===")
+    print(f"\n=== Thresholds chosen on THRESH (FN cost={FN_COST}, FP cost={FP_COST}) ===")
     print(best)
-
     t_low, t_high = best["t_low"], best["t_high"]
 
+    # final test behavior using t_high (reject as BAD)
     pred_bad_test = (probs_test >= t_high).astype(int)
 
     print("\n=== TEST performance at chosen t_high (reject as BAD) ===")
@@ -128,14 +121,16 @@ def main():
     print("\nClassification Report:\n", classification_report(y_test, pred_bad_test))
 
     artifacts = {
-        "model": model,
+        "model": model,  # base model used in API
         "imputer": imputer,
         "feature_names": list(X_train.columns),
         "thresholds": {"t_low": t_low, "t_high": t_high},
         "costs": {"fn_cost": FN_COST, "fp_cost": FP_COST},
+        "metrics": {"auc_test": float(auc), "brier_test": float(brier)},
+        "calibration": {"used": False, "note": "sigmoid/isotonic tested; Brier worsened"},
     }
     joblib.dump(artifacts, "artifacts.joblib")
-    print("\nSaved: artifacts.joblib (with thresholds + costs)")
+    print("\nSaved: artifacts.joblib (base model + thresholds + costs + metrics)")
 
 
 if __name__ == "__main__":
