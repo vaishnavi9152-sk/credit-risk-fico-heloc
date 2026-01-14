@@ -1,8 +1,8 @@
 import joblib
 import pandas as pd
 
-from src.credit_risk.features import transform_with_imputer
-from src.credit_risk.explain import explain_one
+from credit_risk.features import transform_with_imputer
+from credit_risk.explain import explain_one
 
 
 def load_artifacts(path="artifacts.joblib"):

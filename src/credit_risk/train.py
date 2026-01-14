@@ -13,7 +13,7 @@ from sklearn.metrics import (
 
 from xgboost import XGBClassifier
 
-from src.credit_risk.features import fit_imputer, transform_with_imputer
+from credit_risk.features import fit_imputer, transform_with_imputer
 
 
 def load_data() -> pd.DataFrame:

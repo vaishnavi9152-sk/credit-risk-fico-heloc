@@ -1,5 +1,5 @@
 from sklearn.datasets import fetch_openml
-from src.credit_risk.predict import predict_one
+from credit_risk.predict import predict_one
 
 ds = fetch_openml(data_id=45554, as_frame=True)
 df = ds.frame

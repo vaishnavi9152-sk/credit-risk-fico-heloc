@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import Dict, Any
 
-from src.credit_risk.predict import predict_one
+from credit_risk.predict import predict_one
 
 app = FastAPI(title="Explainable Credit Risk API")
 

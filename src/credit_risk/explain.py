@@ -1,7 +1,6 @@
 import pandas as pd
 import shap
 
-# Cache explainer so we don't rebuild it every request
 _EXPLAINER = None
 _MODEL_ID = None
 
@@ -33,7 +32,6 @@ def explain_one(model, X_row: pd.DataFrame, top_k: int = 5):
 
     explainer = _get_tree_explainer(model)
 
-    # shap_values: (1, n_features) for binary classification
     shap_values = explainer.shap_values(X_row)
     vals = shap_values[0]
     feats = list(X_row.columns)
