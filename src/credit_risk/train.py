@@ -77,6 +77,7 @@ def main():
     X_test = transform_with_imputer(df_test, imputer)
 
     # model
+    # IMPORTANT: objective + base_score are set explicitly for SHAP compatibility in CI
     model = XGBClassifier(
         n_estimators=800,
         max_depth=3,
@@ -88,6 +89,8 @@ def main():
         random_state=42,
         n_jobs=-1,
         eval_metric="logloss",
+        objective="binary:logistic",
+        base_score=0.5,
     )
     model.fit(X_train, y_train)
 
@@ -124,8 +127,8 @@ def main():
         "model": model,  # base model used in API
         "imputer": imputer,
         "feature_names": list(X_train.columns),
-        "thresholds": {"t_low": t_low, "t_high": t_high},
-        "costs": {"fn_cost": FN_COST, "fp_cost": FP_COST},
+        "thresholds": {"t_low": float(t_low), "t_high": float(t_high)},
+        "costs": {"fn_cost": float(FN_COST), "fp_cost": float(FP_COST)},
         "metrics": {"auc_test": float(auc), "brier_test": float(brier)},
         "calibration": {"used": False, "note": "sigmoid/isotonic tested; Brier worsened"},
     }
