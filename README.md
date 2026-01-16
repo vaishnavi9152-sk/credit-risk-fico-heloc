@@ -1,3 +1,6 @@
+[![Credit Risk CI](https://github.com/vaishnavi9152-sk/credit-risk-fico-heloc/actions/workflows/ci.yml/badge.svg)](https://github.com/vaishnavi9152-sk/credit-risk-fico-heloc/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/vaishnavi9152-sk/credit-risk-fico-heloc)](https://github.com/vaishnavi9152-sk/credit-risk-fico-heloc/releases)
+
 # **Credit Risk Prediction System (FICO HELOC)**
 
 A **production-grade machine learning system** that predicts **credit default risk** using **FICO HELOC data**, with **cost-sensitive decisioning, explainability (SHAP), API deployment, CI, and Docker**.
