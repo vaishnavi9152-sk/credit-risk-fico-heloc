@@ -1,109 +1,110 @@
-Credit Risk Prediction System (FICO HELOC)
+# **Credit Risk Prediction System (FICO HELOC)**
 
-A production-grade machine learning system that predicts credit default risk using FICO HELOC data, with cost-sensitive decisioning, explainability (SHAP), API deployment, CI, and Docker.
+A **production-grade machine learning system** that predicts **credit default risk** using **FICO HELOC data**, with **cost-sensitive decisioning, explainability (SHAP), API deployment, CI, and Docker**.
 
-This project simulates how banks and fintech companies decide whether to approve, review, or reject a loan application.
+This project simulates how **banks and fintech companies** decide whether to **approve, review, or reject** a loan application.
 
-What This System Does
+---
+
+## **What This System Does**
 
 Given a person’s credit profile, the system returns:
 
-Probability of default
+- **Probability of default**
+- **Risk tier: LOW / MEDIUM / HIGH**
+- **Final decision: APPROVE / MANUAL_REVIEW / REJECT**
+- **Top risk factors (why the model thinks this is risky)**
+- **Top protective factors (what helps this person)**
 
-Risk tier: LOW / MEDIUM / HIGH
+All results are exposed through a **FastAPI web service**.
 
-Final decision: APPROVE / MANUAL_REVIEW / REJECT
+---
 
-Top risk factors (why the model thinks this is risky)
+## **Machine Learning Pipeline**
 
-Top protective factors (what helps this person)
+**Raw Data → Preprocessing → XGBoost Model → Probability → Cost-Sensitive Decision → SHAP Explainability → API**
 
-All results are exposed through a FastAPI web service.
+---
 
-Machine Learning Pipeline
+## **Dataset**
 
-Raw Data → Preprocessing → XGBoost Model → Probability → Cost-Sensitive Decision → SHAP Explainability → API
+- **FICO HELOC dataset (OpenML ID: 45554)**
+- **Each row represents one borrower**
+- **Target variable**
+  - **Good → Loan repaid**
+  - **Bad → Defaulted**
 
-Dataset
+This is a **supervised binary classification problem**.
 
-FICO HELOC dataset (OpenML ID: 45554)
+---
 
-Each row represents one borrower
+## **Model**
 
-Target variable:
+The system uses **XGBoost**, a **state-of-the-art tree-based ensemble model** widely used in **financial risk modeling**.
 
-Good → Loan repaid
+### **Why XGBoost**
 
-Bad → Defaulted
+- **Handles non-linear relationships**
+- **Works well with missing values**
+- **Performs extremely well on tabular financial data**
 
-This is a supervised binary classification problem.
+### **Model Performance (Test Set)**
 
-Model
+| **Metric** | **Value** |
+|-----------|---------|
+| **ROC-AUC** | **~0.80** |
+| **Brier Score** | **~0.18** |
 
-The system uses XGBoost, a state-of-the-art tree-based ensemble model widely used in financial risk modeling.
+This means the model is **strong at ranking risky vs safe borrowers** and produces **high-quality probability estimates**.
 
-Why XGBoost
+---
 
-Handles non-linear relationships
+## **Cost-Sensitive Decision System**
 
-Works well with missing values
+Banks do not optimize for **accuracy** — they optimize for **financial loss**.
 
-Performs extremely well on tabular financial data
-
-Model Performance (Test Set)
-Metric	Value
-ROC-AUC	~0.80
-Brier Score	~0.18
-
-This means the model is strong at ranking risky vs safe borrowers and produces high-quality probability estimates.
-
-Cost-Sensitive Decision System
-
-Banks do not optimize for accuracy — they optimize for financial loss.
-
-False Negative (approve a defaulter) → high cost
-
-False Positive (reject a good customer) → lower cost
+- **False Negative (approve a defaulter)** → **high cost**
+- **False Positive (reject a good customer)** → **lower cost**
 
 We explicitly model this:
 
-False-Negative cost = 2
+- **False-Negative cost = 2**
+- **False-Positive cost = 1**
 
-False-Positive cost = 1
-
-The system searches for probability thresholds that minimize financial loss, not classification error.
+The system searches for probability thresholds that **minimize financial loss**, not classification error.
 
 This produces two thresholds:
 
-t_low
+- **t_low**
+- **t_high**
 
-t_high
+| **Risk Tier** | **Rule** |
+|--------------|--------|
+| **LOW** | **probability < t_low** |
+| **MEDIUM** | **t_low ≤ probability < t_high** |
+| **HIGH** | **probability ≥ t_high** |
 
-Risk Tier	Rule
-LOW	probability < t_low
-MEDIUM	t_low ≤ probability < t_high
-HIGH	probability ≥ t_high
-Explainability (SHAP)
+---
 
-Every prediction is fully explainable.
+## **Explainability (SHAP)**
+
+Every prediction is **fully explainable**.
 
 The API returns:
 
-Top features increasing default risk
-
-Top features reducing default risk
-
-Exact feature values used
+- **Top features increasing default risk**
+- **Top features reducing default risk**
+- **Exact feature values used**
 
 This is critical for:
 
-Regulatory compliance
+- **Regulatory compliance**
+- **Loan officer trust**
+- **Model auditing and fairness**
 
-Loan officer trust
+### **Example Output**
 
-Model auditing and fairness
-
-Example Output
+```json
 {
   "prob_bad": 0.842,
   "risk_tier": "HIGH",
@@ -116,52 +117,78 @@ Example Output
     { "feature": "AverageMInFile", "value": 84, "impact": -0.1886 }
   ]
 }
+```
 
-API (FastAPI)
-Start locally
+
+## **API (FastAPI)**
+
+## Start locally:
+
 uvicorn credit_risk.api:app --reload
 
-Open
+## Open:
+
 http://localhost:8000/docs
 
-Endpoint
+## Endpoint
+
 POST /predict
 
-Request Payload
-{
+## Request Payload
+```json
+{  
   "data": {
-    "ExternalRiskEstimate": 55,
-    "MSinceOldestTradeOpen": 144,
-    "PercentTradesNeverDelq": 83
+    "ExternalRiskEstimate": 55.0,
+    "MSinceOldestTradeOpen": 144.0,
+    "MSinceMostRecentTradeOpen": 4,
+    "AverageMInFile": 84,
+    "NumSatisfactoryTrades": 20,
+    "NumTrades60Ever2DerogPubRec": 3,
+    "NumTrades90Ever2DerogPubRec": 0,
+    "PercentTradesNeverDelq": 83,
+    "MSinceMostRecentDelq": 2.0,
+    "MaxDelq2PublicRecLast12M": "3",
+    "MaxDelqEver": "5",
+    "NumTotalTrades": 23,
+    "NumTradesOpeninLast12M": 1,
+    "PercentInstallTrades": 43,
+    "MSinceMostRecentInqexcl7days": 0.0,
+    "NumInqLast6M": 0,
+    "NumInqLast6Mexcl7days": 0,
+    "NetFractionRevolvingBurden": 33.0,
+    "NetFractionInstallBurden": NaN,
+    "NumRevolvingTradesWBalance": 8.0,
+    "NumInstallTradesWBalance": 1.0,
+    "NumBank2NatlTradesWHighUtilization": 1.0,
+    "PercentTradesWBalance": 69.0
   }
 }
-
+```
 
 The API returns risk tier, decision, and SHAP explanations.
 
-Dockerized
-
+## **Dockerized**
 The entire system is containerized.
 
-Build
-docker build -t credit-risk-fico-heloc .
+## Build:
 
-Run
+docker build -t credit-risk-fico-heloc 
+
+## Run:
+
 docker run -p 8000:8000 credit-risk-fico-heloc
-
 
 This trains the model at build time and serves the API.
 
-CI/CD
-
+## **CI/CD**
 GitHub Actions automatically:
 
-Installs dependencies
+- Installs dependencies
 
-Trains the model
+- Trains the model
 
-Runs unit tests
+- Runs unit tests
 
-Runs API tests
+- Runs API tests
 
 This ensures the system never breaks when code changes.

@@ -31,12 +31,10 @@ def test_predict_output_shape():
 
     out = predict_one(sample)
 
-    # basic structure checks
     assert "prob_bad" in out
     assert "risk_tier" in out
     assert "decision" in out
     assert "top_risk_factors" in out
     assert "top_protective_factors" in out
 
-    # probability sanity
     assert 0 <= out["prob_bad"] <= 1

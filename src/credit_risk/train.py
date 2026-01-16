@@ -60,24 +60,19 @@ def main():
     df = load_data()
     y = (df["RiskPerformance"] == "Bad").astype(int)
 
-    # 80/20: trainval/test
     df_trainval, df_test, y_trainval, y_test = train_test_split(
         df, y, test_size=0.2, stratify=y, random_state=42
     )
 
-    # Split trainval into TRAIN (60%) and THRESH (20%)
     df_train, df_thresh, y_train, y_thresh = train_test_split(
         df_trainval, y_trainval, test_size=0.25, stratify=y_trainval, random_state=42
     )
 
-    # preprocessing fit only on TRAIN
     imputer = fit_imputer(df_train)
     X_train = transform_with_imputer(df_train, imputer)
     X_thresh = transform_with_imputer(df_thresh, imputer)
     X_test = transform_with_imputer(df_test, imputer)
 
-    # model
-    # IMPORTANT: objective + base_score are set explicitly for SHAP compatibility in CI
     model = XGBClassifier(
         n_estimators=800,
         max_depth=3,
@@ -94,7 +89,6 @@ def main():
     )
     model.fit(X_train, y_train)
 
-    # evaluate probability quality (uncalibrated)
     probs_test = model.predict_proba(X_test)[:, 1]
     auc = roc_auc_score(y_test, probs_test)
     brier = brier_score_loss(y_test, probs_test)
@@ -103,7 +97,6 @@ def main():
     print("ROC AUC (test):", auc)
     print("Brier (test):", brier)
 
-    # choose thresholds on THRESH
     probs_thresh = model.predict_proba(X_thresh)[:, 1]
     best = pick_thresholds_cost_sensitive(
         probs=probs_thresh,
@@ -116,7 +109,6 @@ def main():
     print(best)
     t_low, t_high = best["t_low"], best["t_high"]
 
-    # final test behavior using t_high (reject as BAD)
     pred_bad_test = (probs_test >= t_high).astype(int)
 
     print("\n=== TEST performance at chosen t_high (reject as BAD) ===")
@@ -124,7 +116,7 @@ def main():
     print("\nClassification Report:\n", classification_report(y_test, pred_bad_test))
 
     artifacts = {
-        "model": model,  # base model used in API
+        "model": model, 
         "imputer": imputer,
         "feature_names": list(X_train.columns),
         "thresholds": {"t_low": float(t_low), "t_high": float(t_high)},
