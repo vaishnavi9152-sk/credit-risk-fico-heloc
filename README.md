@@ -2,6 +2,10 @@
 [![Release](https://img.shields.io/github/v/release/vaishnavi9152-sk/credit-risk-fico-heloc)](https://github.com/vaishnavi9152-sk/credit-risk-fico-heloc/releases)
 
 # **Credit Risk Prediction System (FICO HELOC)**
+- A **production-grade machine learning system** that predicts **credit default risk** using **FICO HELOC data**, with **cost-sensitive decisioning, explainability (SHAP), API deployment, CI, and Docker**.
+
+- This project simulates how **banks and fintech companies** decide whether to **approve, review, or reject** a loan application.
+
 **Live Demo (Swagger UI):** https://credit-risk-fico-heloc.onrender.com/docs  
 **API Base URL:** https://credit-risk-fico-heloc.onrender.com
 ## Live Demo
@@ -14,12 +18,6 @@
 
 ### Example Response (with SHAP)
 ![Response](assets/response.png)
-
-
-
-A **production-grade machine learning system** that predicts **credit default risk** using **FICO HELOC data**, with **cost-sensitive decisioning, explainability (SHAP), API deployment, CI, and Docker**.
-
-This project simulates how **banks and fintech companies** decide whether to **approve, review, or reject** a loan application.
 
 ---
 
