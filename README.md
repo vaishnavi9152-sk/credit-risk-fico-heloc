@@ -2,6 +2,20 @@
 [![Release](https://img.shields.io/github/v/release/vaishnavi9152-sk/credit-risk-fico-heloc)](https://github.com/vaishnavi9152-sk/credit-risk-fico-heloc/releases)
 
 # **Credit Risk Prediction System (FICO HELOC)**
+**Live Demo (Swagger UI):** https://credit-risk-fico-heloc.onrender.com/docs  
+**API Base URL:** https://credit-risk-fico-heloc.onrender.com
+## Live Demo
+
+### Swagger API
+![Swagger UI](assets/swagger.png)
+
+### Example Request
+![Request](assets/request.png)
+
+### Example Response (with SHAP)
+![Response](assets/response.png)
+
+
 
 A **production-grade machine learning system** that predicts **credit default risk** using **FICO HELOC data**, with **cost-sensitive decisioning, explainability (SHAP), API deployment, CI, and Docker**.
 
@@ -159,7 +173,7 @@ POST /predict
     "NumInqLast6M": 0,
     "NumInqLast6Mexcl7days": 0,
     "NetFractionRevolvingBurden": 33.0,
-    "NetFractionInstallBurden": NaN,
+    "NetFractionInstallBurden": null,
     "NumRevolvingTradesWBalance": 8.0,
     "NumInstallTradesWBalance": 1.0,
     "NumBank2NatlTradesWHighUtilization": 1.0,
@@ -169,6 +183,47 @@ POST /predict
 ```
 
 The API returns risk tier, decision, and SHAP explanations.
+## Try It Live (One-Click)
+
+You can test the model without installing anything.
+
+1. Open:  
+https://credit-risk-fico-heloc.onrender.com/docs
+
+2. Click **POST /predict**
+
+3. Click **Try it out**
+
+4. Paste this JSON and click **Execute**
+
+```json
+{
+  "data": {
+    "ExternalRiskEstimate": 55,
+    "MSinceOldestTradeOpen": 144,
+    "MSinceMostRecentTradeOpen": 4,
+    "AverageMInFile": 84,
+    "NumSatisfactoryTrades": 20,
+    "NumTrades60Ever2DerogPubRec": 3,
+    "NumTrades90Ever2DerogPubRec": 0,
+    "PercentTradesNeverDelq": 83,
+    "MSinceMostRecentDelq": 2,
+    "MaxDelq2PublicRecLast12M": 3,
+    "MaxDelqEver": 5,
+    "NumTotalTrades": 23,
+    "NumTradesOpeninLast12M": 1,
+    "PercentInstallTrades": 43,
+    "MSinceMostRecentInqexcl7days": 0,
+    "NumInqLast6M": 0,
+    "NumInqLast6Mexcl7days": 0,
+    "NetFractionRevolvingBurden": 33,
+    "NumRevolvingTradesWBalance": 8,
+    "NumInstallTradesWBalance": 1,
+    "NumBank2NatlTradesWHighUtilization": 1,
+    "PercentTradesWBalance": 69
+  }
+}
+```
 
 ## **Dockerized**
 The entire system is containerized.
